@@ -47,6 +47,10 @@ This example assumes you want to create a netns named **vpn** and the source fil
     
     # add custom resolv.conf and nsswitch.conf
     cp -r /opt/eznetns/templates/netns /etc/netns/vpn
+
+    # put your wireguard config in /etc/netns/vpn/wireguard/[interface].conf (with wgen or manually)
+
+    # Testing netns through cmd
     
     # manually setup netns
     netns vpn setup
@@ -56,9 +60,11 @@ This example assumes you want to create a netns named **vpn** and the source fil
     
     # exec through netns
     netns vpn exec mycommand
+    # example: netns vpn exec curl ifconfig.co
     
     # enter netns (exit as normal with exit)
     netns vpn enter
+    # exit with a normal exit
     
     # manually remove netns
     netns vpn remove
