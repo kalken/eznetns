@@ -32,7 +32,8 @@ You should use separate resolv.conf and nsswitch.conf in your netns to control h
 
 ## Setup
 This example assumes you want to create a netns named **vpn** and the source files are in **/opt/eznetns**
-    
+
+### Basic setup    
     # log in as root 
     sudo -Es
 
@@ -50,7 +51,7 @@ This example assumes you want to create a netns named **vpn** and the source fil
 
     # put your wireguard config in /etc/netns/vpn/wireguard/[interface].conf (with wgen or manually)
 
-    # Testing netns through cmd
+### Testing netns through cmd
     
     # manually setup netns
     netns vpn setup
@@ -62,15 +63,16 @@ This example assumes you want to create a netns named **vpn** and the source fil
     netns vpn exec mycommand
     # example: netns vpn exec curl ifconfig.co
     
-    # enter netns (exit as normal with exit)
+    # enter netns
     netns vpn enter
-    # exit with a normal exit
+    # Note: exit with "exit"
     
     # manually remove netns
     netns vpn remove
     
     
-    ### systemd files ###
+    
+### systemd files
     # Note: microsocks needs to be installed on your system
 
     cp -r /opt/eznetns/templates/systemd /opt/systemd # or any other place you prefer
