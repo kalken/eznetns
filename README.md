@@ -46,7 +46,7 @@ This example assumes you want to create a netns named **vpn** and the source fil
     wgen --help
     
     # add custom resolv.conf and nsswitch.conf
-    cp -r /opt/eznetns/files/ /etc/netns/vpn
+    cp -r /opt/eznetns/templates/netns /etc/netns/vpn
     
     # manually setup netns
     netns vpn setup
@@ -66,28 +66,22 @@ This example assumes you want to create a netns named **vpn** and the source fil
     
     ### systemd files ###
     # Note: microsocks needs to be installed on your system
-    
-    # socks5 on localhost 1080
-    systemctl link /opt/eznetns/systemd/microsocks.service
-    
-    # socket on localhost 1081 to vpn 1080
-    systemctl link /opt/eznetns/systemd/vpn-proxy.socket
-    systemctl link /opt/eznetns/systemd/vpn-proxy.service
-    
-    # netns services
-    # Note: you can edit the file to start as another user than root
-    systemctl link /opt/eznetns/systemd/netns/netns@.service
-    systemctl link /opt/eznetns/systemd/netns/microsocks@.service
-    
-    # vpn target
-    systemctl link /opt/eznetns/systemd/vpn.target
-    
+
+    cp -r /opt/eznetns/templates/systemd /opt/systemd # or any other place you prefer
+    # Edit files to match your needs
+
+    # link to /etc/systemd/system
+    systemctl link /opt/systemd/*.*
+    systemctl link /opt/systemd/netns/*
+
     # start manually
     # Note: vpn-proxy.socket will trigger vpn-proxy.service when socket is activated.
     systemctl start microsocks vpn-proxy.socket vpn.target
     
     # enable services at boot
     systemctl enable microsocks vpn-proxy.socket vpn.target
+    
+    # Note: If you add more services to netns, also add them to vpn.target file so they are started at boot.
     
 # done!
 
