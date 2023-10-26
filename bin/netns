@@ -1,0 +1,153 @@
+#!/bin/bash
+
+#set -e
+
+if test "$EUID" -ne 0; then 
+    echo "You need to have root privileges to run this script"
+    exit
+fi
+
+netns.add () {
+    ip netns add $_ns
+    ip -n $_ns link set lo up
+}
+
+netns.nftables () {
+    if test -f $_nspath/nftables.conf; then
+        echo "nftables: $_nspath/nftables.conf"
+        ip netns exec $_ns nft -f /etc/nftables.conf
+    fi
+}
+
+netns.wireguard () {
+    if test -d $_nspath/wireguard; then
+        for _file in $(ls $_nspath/wireguard/*.conf); do
+            _filename=$(basename -- $_file)
+            echo "wireguard: $_filename"
+            _dev=${_filename%.conf}
+            wg.up $_dev
+        done
+    fi
+}
+
+netns.remove () {
+    #ip netns pids $_ns | xargs kill
+    ip netns del $_ns
+}
+
+wg.up () {
+    _dev=$1
+
+    if test -z $_dev; then
+        echo "Not enough information: \"dev\" argument is required."
+        exit 1
+    fi
+    
+    _conf=$_nspath/wireguard/$_dev.conf
+
+    if test ! -f $_conf; then
+        echo "file not found: $_conf"
+        exit 1
+    fi
+
+    ip link add $_dev type wireguard
+    ip link set $_dev netns $_ns
+    ip netns exec $_ns wg setconf $_dev <(wg-quick strip $_conf)
+    
+    _addr=$(grep -ioP "^ADDRESS = \K(.*)" $_conf | tr -s " ")
+    IFS=", "; for i in $_addr; do
+        ip -n $_ns a add $i dev $_dev
+    done
+    
+    _nameservers=$(grep -ioP "^DNS = \K(.*)" $_conf | tr -s " ");
+
+    if test ! -z _nameservers; then
+        > $_nspath/resolv.conf
+        IFS=", "; for i in $_nameservers; do
+            echo nameserver $i >> $_nspath/resolv.conf
+        done
+    fi
+
+    ip -n $_ns link set $_dev up
+    ip -n $_ns route add default dev $_dev
+    ip -6 -n $_ns route add default dev $_dev
+}
+
+wg.down () {
+    _dev=$1
+    
+    if test -z $_dev; then
+        echo "Not enough information: \"dev\" argument is required."
+        exit 1
+    fi
+    
+    ip -n $_ns link del $_dev
+}
+
+wg.reload () {
+    wg.down $1
+    wg.up $1
+}
+
+setup () {
+    netns.add
+    
+    if test -d $_nspath; then
+        netns.nftables
+        netns.wireguard
+    fi
+}
+
+remove () {
+    netns.remove
+}
+
+enter () {
+    ip netns exec $_ns $SHELL
+}
+
+exec () {
+    ip netns exec $_ns $@
+}
+
+
+list () {
+    ip netns list
+}
+
+help () {
+    echo "Usage: netns [netns] [command]"
+    echo "command:" $(compgen -A function)
+    echo "### netns uses files in /etc/netns/[netns] to setup network space ###"
+    echo
+    echo "examples:"
+    echo "#setup network space vpn"
+    echo "netns vpn setup"
+    echo "# reload wireguard wg0"
+    echo "netns vpn wg.reload wg0"
+    echo "# remove network space vpn"
+    echo "netns vpn remove"
+    exit 0
+}
+
+# main
+case $1 in 
+ -h) help ;; 
+ --help) help ;;
+help) help ;;
+list) list ;;
+esac
+
+_ns=$1
+_nspath=/etc/netns/$_ns
+shift
+
+if test -z $_ns; then
+    help
+    exit 0
+fi
+
+_command=$1
+shift
+
+$_command $@
