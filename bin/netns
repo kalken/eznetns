@@ -54,12 +54,13 @@ wg.up () {
     ip link set $_dev netns $_ns
     ip netns exec $_ns wg setconf $_dev <(wg-quick strip $_conf)
     
-    _addr=$(grep -ioP "^ADDRESS = \K(.*)" $_conf | tr -s " ")
+    _addr=$(awk -F ' *= *' 'tolower($0) ~ /^address/ {print $2}' $_conf)
+
     IFS=", "; for i in $_addr; do
         ip -n $_ns a add $i dev $_dev
     done
     
-    _nameservers=$(grep -ioP "^DNS = \K(.*)" $_conf | tr -s " ");
+    _nameservers=$(awk -F ' *= *' 'tolower($0) ~ /^dns/ {print $2}' $_conf)
 
     if test ! -z _nameservers; then
         > $_nspath/resolv.conf
