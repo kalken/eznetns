@@ -19,11 +19,11 @@ These tools where developed to make it EZ to setup a separate network environmen
 
 ## Tools
 
-### netns.sh
+### netns
 
 netns is used to create and setup a network namespace. It is heavily based on the standard command "ip netns", and just makes it easier to configure the environment. It currently supports automagic configuration of nftables firewall, and wireguard interfaces. netns uses /etc/netns/[name]/ as base for its setup, just as "ip netns" does. Put your files there. if /etc/nftables.conf is found inside the netns, nftables will be configured, if any file in /etc/wireguard is found, it will be configured. **netns requires bash**.
 
-### wgen.py
+### wgen
 
 wgen is used to generate complete wireguard configs. It can also be used to change wireguard config. wgen also supports making system wide wg-quick config if no netns is specified. it expects settings in /root/.wgen/settings/[interface].conf and a folder of configs to choose from in /root/.wgen/templates/[interface]/. Any setting in the settings file will always override any setting in a template file. A typical thing to specify in the settings file is **privatekey**. One file at random will be chosen from /root/.wgen/templates/[interface]/ and merged with the settings file any time this program is run. **wgen requires python 3**.
 
