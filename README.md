@@ -28,7 +28,7 @@ netns is used to create and setup a network namespace. It is heavily based on th
 wgen is used to generate complete wireguard configs. It can also be used to change wireguard config. wgen also supports making system wide wg-quick config if no netns is specified. it expects settings in /root/.wgen/settings/[interface].conf and a folder of configs to choose from in /root/.wgen/templates/[interface]/. Any setting in the settings file will always override any setting in a template file. A typical thing to specify in the settings file is **privatekey**. One file at random will be chosen from /root/.wgen/templates/[interface]/ and merged with the settings file any time this program is run. **wgen requires python 3**.
 
 ## Prevent dns leaks
-You should use separate resolv.conf and nsswitch.conf in your netns to control how the netns resolves its hosts. example files are included in "files" folder, and systemd examples.
+You should use separate resolv.conf and nsswitch.conf in your netns to control how the netns resolves its hosts. example files are included in "templates" folder.
 
 ## Setup
 This example assumes you want to create a netns named **vpn** and the source files are in **/opt/eznetns**
@@ -81,7 +81,13 @@ This example assumes you want to create a netns named **vpn** and the source fil
     # enable services at boot
     systemctl enable microsocks vpn-proxy.socket vpn.target
     
-    # Note: If you add more services to netns, also add them to vpn.target file so they are started at boot.
+## Notes: 
+Services are available at localhost: 
+       
+* 1080 localhost -> microsocks host ip
+* 1081 localhost -> microsocks netns ip through local socket
+ 
+**If you add** more services to **/opt/systemd/netns**, also add them to **vpn.target** so they are started at boot.
     
 # done!
 
