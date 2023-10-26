@@ -37,7 +37,7 @@ This example assumes you want to create a netns named **vpn** and the source fil
     sudo -Es
 
     # Enable commands 
-    # (make sure /usr/local/sbin/netns is in your shell PATH)
+    # Note: make sure /usr/local/sbin is in your shell PATH
     ln -s /opt/eznetns/bin/netns /usr/local/sbin/netns
     ln -s /opt/eznetns/bin/wgen /usr/local/sbin/wgen
     
@@ -65,7 +65,7 @@ This example assumes you want to create a netns named **vpn** and the source fil
     
     
     ### systemd files ###
-    # Note: install microsocks on your system first...
+    # Note: microsocks needs to be installed on your system
     
     # socks5 on localhost 1080
     systemctl link /opt/eznetns/systemd/microsocks.service
@@ -75,8 +75,9 @@ This example assumes you want to create a netns named **vpn** and the source fil
     systemctl link /opt/eznetns/systemd/vpn-proxy.service
     
     # netns services
-    systemctl link /opt/eznetns/systemd/netns@.service
-    systemctl link /opt/eznetns/systemd/microsocks@.service
+    # Note: you can edit the file to start as another user than root
+    systemctl link /opt/eznetns/systemd/netns/netns@.service
+    systemctl link /opt/eznetns/systemd/netns/microsocks@.service
     
     # vpn target
     systemctl link /opt/eznetns/systemd/vpn.target
