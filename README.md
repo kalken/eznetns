@@ -9,7 +9,7 @@ These tools where developed to make it EZ to setup a separate network environmen
 * Systemd startup scripts that explains how to start a process inside a network environment
 * Systemd socket example, which explains how to bind a local port on the "host" to a service inside a isolated network environment.
 
-## Focus on simplicity
+## No external dependencies:
 * No need for containers
 * No need for bridges or virtual network adapters
 * Default routing tables
@@ -17,7 +17,16 @@ These tools where developed to make it EZ to setup a separate network environmen
 * No firewall requirements (unless you want one)
 * Start services as any user through systemd
 
-## Tools
+
+## Short story
+1. Clone repository
+2. Enable commands by linking them to /usr/local/sbin
+3. create your /etc/netns/<name> (template files in repo)
+4. create systemd services (template files in repo)
+5. Enable systemd services to start at boot
+6. done!
+
+## Long story
 
 ### netns
 
