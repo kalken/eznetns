@@ -33,7 +33,7 @@ def handler(args):
         if not target_dir.is_dir():
             print(f'Creating: {target_dir}')
             target.parent.mkdir(parents=True, exist_ok=True)
-        
+
         print(f'Generating: {target}')
         handle = open(target, 'w')
         target.chmod(0o750)
@@ -50,7 +50,7 @@ def main(args):
         if t_path.is_dir():
             template_dir = t_path
         else:
-            print (f'can not find directory {t_path}')
+            print(f'can not find directory {t_path}')
             template_dir = None
 
         c_path = Path(f'/root/.wgen/settings/{args.interface}.conf')
@@ -66,7 +66,7 @@ def main(args):
             template.read(template_file)
             template.read(conf)
             template.write(handler(args))
-    
+
     except Exception as e:
         print(e)
         sys.exit(1)
@@ -76,7 +76,8 @@ if __name__ == '__main__':
     my_parser = argparse.ArgumentParser(description='generate config for wireguard')
     my_parser.add_argument('--dev', dest='interface', type=str, default='', help='selected interface')
     my_parser.add_argument('--netns', dest='netns', type=str, default='', help='selected netns (optional)')
-    my_parser.add_argument('--print', dest='print', action='store_true', default=False, help="print config but don't generate file")
+    my_parser.add_argument('--print', dest='print', action='store_true', default=False,
+                           help="print config but don't generate file")
     my_parser.add_argument('--version', dest='version', action='store_true', default=False, help="show version")
 
     args = my_parser.parse_args()
