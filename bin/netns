@@ -63,11 +63,11 @@ wg.up () {
     _nameservers=$(awk -F ' *= *' 'tolower($0) ~ /^dns/ {print $2}' "$_conf")
 
     if test ! -z "$_nameservers"; then
+        echo "Updating: $_nspath/resolv.conf"
         true > "$_nspath/resolv.conf"
         IFS=", "; for i in $_nameservers; do
-            echo nameserver "$i" >> "$_nspath/resolv.conf"
+            echo "nameserver $i" >> "$_nspath/resolv.conf"
         done
-        echo "Updating: $_nspath/resolv.conf"
     fi
 
     ip -n "$_ns" link set "$_dev" up
