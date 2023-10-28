@@ -23,7 +23,7 @@ netns.wireguard () {
     if test -d "$_nspath/wireguard"; then
         for _file in "$_nspath/wireguard/"*.conf; do
             _filename=$(basename -- "$_file")
-            echo "wireguard: $_filename"
+            echo "wireguard: $_file"
             _dev="${_filename%.conf}"
             wg.up "$_dev"
         done
