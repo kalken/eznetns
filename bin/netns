@@ -13,15 +13,15 @@ netns.add () {
 }
 
 netns.nftables () {
-    if test -f "$_nspath"/nftables.conf; then
+    if test -f "$_nspath/nftables.conf"; then
         echo "nftables: $_nspath/nftables.conf"
         ip netns exec "$_ns" nft -f /etc/nftables.conf
     fi
 }
 
 netns.wireguard () {
-    if test -d "$_nspath"/wireguard; then
-        for _file in "$_nspath"/wireguard/*.conf; do
+    if test -d "$_nspath/wireguard"; then
+        for _file in "$_nspath/wireguard/"*.conf; do
             _filename=$(basename -- "$_file")
             echo "wireguard: $_filename"
             _dev="${_filename%.conf}"
@@ -63,10 +63,11 @@ wg.up () {
     _nameservers=$(awk -F ' *= *' 'tolower($0) ~ /^dns/ {print $2}' "$_conf")
 
     if test ! -z "$_nameservers"; then
-        true > "$_nspath"/resolv.conf
+        true > "$_nspath/resolv.conf"
         IFS=", "; for i in $_nameservers; do
             echo nameserver "$i" >> "$_nspath/resolv.conf"
         done
+        echo "Updating: $_nspath/resolv.conf"
     fi
 
     ip -n "$_ns" link set "$_dev" up
@@ -140,7 +141,7 @@ list) list ;;
 esac
 
 _ns="$1"
-_nspath=/etc/netns/"$_ns"
+_nspath="/etc/netns/$_ns"
 shift
 
 if test -z "$_ns"; then
