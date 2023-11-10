@@ -115,11 +115,12 @@ exec () {
 
 list () {
     ip netns list
+    exit 0
 }
 
 help () {
     echo "Usage: netns [netns] [command]"
-    echo "command:" $(compgen -A function)
+    echo "command: " $_commands
     echo "### netns uses files in /etc/netns/[netns] to setup network space ###"
     echo
     echo "examples:"
@@ -132,7 +133,10 @@ help () {
     exit 0
 }
 
+
 # main
+_commands=$(compgen -A function)
+
 case "$1" in 
  -h) help ;; 
  --help) help ;;
@@ -150,5 +154,7 @@ fi
 
 _command="$1"
 shift
+
+[[ $_commands =~ (^|[[:space:]])$_command($|[[:space:]]) ]] || { echo "command not found: $_command"; exit 1; }
 
 $_command "$@"
