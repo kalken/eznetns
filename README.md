@@ -1,5 +1,5 @@
 # Wireguard netns tools
-These tools where developed to make it easy to setup a separate network environment that does not affect the ordinary routing tables and default routes on the host. Its a simple solution built around ip netns, with support for firewall and wireguard interfaces using wg-quick config syntax. This method can be used to start chosen processes or services inside a netns (systemd scripts are included as an example). If wireguard is configured, the wireguard package also needs to be installed.
+These tools where developed to make it easy to setup separate network environments, and control which processes that make use of them. the network environments do not affect the ordinary routing tables and default routes on the host. Its a simple solution built around ip netns, with support for firewall and wireguard interfaces using wg-quick config syntax. This method can be used to start chosen processes or services inside a netns (systemd scripts are included as an example). If wireguard is configured, the wireguard package needs to be installed.
 
 ## Key features:
 
