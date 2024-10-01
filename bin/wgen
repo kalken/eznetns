@@ -63,7 +63,7 @@ def main(args):
 
         if conf and template_dir:
             #template_file = Path(template_dir, random.choice(os.listdir(template_dir)))
-            template_file = Path(template_dir, random.choice(glob.glob(f'{template_dir}/{args.pattern}')))
+            template_file = Path(template_dir, random.choice(glob.glob(f'{template_dir}/*{args.pattern}*')))
 
             if template_file:
                 template = configparser.ConfigParser()
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     my_parser = argparse.ArgumentParser(description='generate config for wireguard')
     my_parser.add_argument('--dev', dest='interface', type=str, default='', help='selected interface')
     my_parser.add_argument('--netns', dest='netns', type=str, default='', help='selected netns (optional)')
-    my_parser.add_argument('--pattern', dest='pattern', type=str, default='*', help='file pattern')
+    my_parser.add_argument('--pattern', dest='pattern', type=str, default='.', help='file pattern')
     my_parser.add_argument('--print', dest='print', action='store_true', default=False,
                            help="print config but don't generate file")
     my_parser.add_argument('--version', dest='version', action='store_true', default=False, help="show version")
