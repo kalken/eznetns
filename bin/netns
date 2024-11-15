@@ -135,7 +135,8 @@ help () {
 
 
 # main
-_commands=$(compgen -A function)
+#_commands=$(compgen -A function)
+_commands=$(declare -F | awk '{print $3}')
 
 case "$1" in 
  -h) help ;; 
