@@ -181,7 +181,7 @@ esac
 
 _ns="$1"
 #_nspath="/etc/netns/$_ns"
-_nspath="~/.config/eznetns/$_ns"
+_nspath="/root/.config/eznetns/$_ns"
 shift
 
 if test -z "$_ns"; then
