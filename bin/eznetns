@@ -25,19 +25,19 @@ netns.setup () {
     fi
     
     if test -f "$_nspath/resolv.conf"; then
-        if -L "/etc/netns/$ns/resolv.conf"; then
+        if -f "/etc/netns/$ns/resolv.conf"; then
             echo "resolve.conf: exists"
         else
-            ln -s "$_nspath/resolv.conf" "/etc/netns/$ns/resolv.conf"
+            ln -s "$_nspath/resolv.conf" "/etc/netns/$_ns/resolv.conf"
             echo "resolve.conf: linked"
         fi
     fi
 
     if test -f "$_nspath/nsswitch.conf"; then
-        if -L "/etc/netns/$ns/nsswitch.conf"; then
+        if -f "/etc/netns/$ns/nsswitch.conf"; then
             echo "nsswitch.conf: exists"
         else
-            ln -s "$_nspath/nsswitch.conf" "/etc/netns/$ns/nsswitch.conf"
+            ln -s "$_nspath/nsswitch.conf" "/etc/netns/$_ns/nsswitch.conf"
             echo "nsswitch.conf: linked" 
         fi
     fi
