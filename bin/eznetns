@@ -129,6 +129,8 @@ setup () {
         netns.setup
         netns.nftables
         netns.wireguard
+    else
+        echo "warning: $_nspath does not exist"
     fi
 }
 
