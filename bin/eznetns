@@ -25,7 +25,7 @@ netns.setup () {
     fi
     
     if test -f "$_nspath/resolv.conf"; then
-        if -f "/etc/netns/$ns/resolv.conf"; then
+        if test -f "/etc/netns/$ns/resolv.conf"; then
             echo "resolve.conf: exists"
         else
             ln -s "$_nspath/resolv.conf" "/etc/netns/$_ns/resolv.conf"
@@ -34,7 +34,7 @@ netns.setup () {
     fi
 
     if test -f "$_nspath/nsswitch.conf"; then
-        if -f "/etc/netns/$ns/nsswitch.conf"; then
+        if test -f "/etc/netns/$ns/nsswitch.conf"; then
             echo "nsswitch.conf: exists"
         else
             ln -s "$_nspath/nsswitch.conf" "/etc/netns/$_ns/nsswitch.conf"
@@ -46,7 +46,7 @@ netns.setup () {
 netns.nftables () {
     if test -f "$_nspath/nftables.conf"; then
         echo "nftables: $_nspath/nftables.conf"
-        ip netns exec "$_ns" nft -f /etc/nftables.conf
+        ip netns exec "$_ns" nft -f "$_nspath/nftables.conf"
     fi
 }
 
