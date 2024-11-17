@@ -32,10 +32,10 @@ def handler(args):
     else:
         target_dir = target.parent
         if not target_dir.is_dir():
-            print(f'Creating: {target_dir}')
+            print(f'creating: {target_dir}')
             target.parent.mkdir(parents=True, exist_ok=True)
 
-        print(f'Generating: {target}')
+        print(f'generating: {target}')
         handle = open(target, 'w')
         target.chmod(0o750)
     return handle
