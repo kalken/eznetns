@@ -23,7 +23,7 @@ def resolve(path):
 
 def handler(args):
     if args.netns:
-        target = Path(f'/etc/netns/{args.netns}/wireguard/{args.interface}.conf')
+        target = Path(f'{args.target}/{args.netns}/wireguard/{args.interface}.conf')
     else:
         target = Path(f'/etc/wireguard/{args.interface}.conf')
     if args.print:
@@ -47,14 +47,14 @@ def main(args):
             print('please select device to configure with --dev')
             sys.exit()
 
-        t_path = Path(f'/root/.wgen/templates/{args.interface}')
+        t_path = Path(f'{args.source}/{args.netns}/{args.interface}')
         if t_path.is_dir():
             template_dir = t_path
         else:
             print(f'can not find directory {t_path}')
             template_dir = None
 
-        c_path = Path(f'/root/.wgen/settings/{args.interface}.conf')
+        c_path = Path(f'{args.source}/{args.netns}/{args.interface}.conf')
         if c_path.is_file():
             conf = c_path
         else:
@@ -77,10 +77,14 @@ if __name__ == '__main__':
     my_parser = argparse.ArgumentParser(description='generate config for wireguard')
     my_parser.add_argument('--dev', dest='interface', type=str, default='', help='selected interface')
     my_parser.add_argument('--netns', dest='netns', type=str, default='', help='selected netns (optional)')
+    my_parser.add_argument('--source', dest='source', type=str, default='/root/.config/ezwgen', help='choose source folder')
+    my_parser.add_argument('--target', dest='target', type=str, default='/root/.config/eznetns', help='choose target folder')
+    
     my_parser.add_argument('--pattern', dest='pattern', type=str, default='.', help='file pattern')
     my_parser.add_argument('--print', dest='print', action='store_true', default=False,
                            help="print config but don't generate file")
     my_parser.add_argument('--version', dest='version', action='store_true', default=False, help="show version")
+    
 
     args = my_parser.parse_args()
 

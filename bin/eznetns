@@ -22,19 +22,19 @@ netns.setup () {
 
     if test -f "$_nspath/resolv.conf"; then
         if test -f "/etc/netns/$_ns/resolv.conf"; then
-            echo "resolve.conf: exists"
+            echo "resolve.conf: /etc/netns/$_ns/resolv.conf"
         else
             ln -s "$_nspath/resolv.conf" "/etc/netns/$_ns/resolv.conf"
-            echo "resolve.conf: linked"
+            echo "resolve.conf -> /etc/netns/$_ns/resolv.conf"
         fi
     fi
 
     if test -f "$_nspath/nsswitch.conf"; then
         if test -f "/etc/netns/$_ns/nsswitch.conf"; then
-            echo "nsswitch.conf: exists"
+            echo "nsswitch.conf: /etc/netns/$_ns/nsswitch.conf"
         else
             ln -s "$_nspath/nsswitch.conf" "/etc/netns/$_ns/nsswitch.conf"
-            echo "nsswitch.conf: linked" 
+            echo "nsswitch.conf -> /etc/netns/$_ns/nsswitch.conf" 
         fi
     fi
 }
@@ -66,7 +66,7 @@ wg.up () {
     _dev=$1
 
     if test -z "$_dev"; then
-        echo "Not enough information: \"dev\" argument is required."
+        echo "not enough information: \"dev\" argument is required."
         exit 1
     fi
     
@@ -90,7 +90,7 @@ wg.up () {
     _nameservers=$(awk -F ' *= *' 'tolower($0) ~ /^dns/ {print $2}' "$_conf")
 
     if test ! -z "$_nameservers"; then
-        echo "Updating: $_nspath/resolv.conf"
+        echo "updating: $_nspath/resolv.conf"
         true > "$_nspath/resolv.conf"
         IFS=", "; for i in $_nameservers; do
             echo "nameserver $i" >> "$_nspath/resolv.conf"
@@ -106,7 +106,7 @@ wg.down () {
     _dev="$1"
     
     if test -z "$_dev"; then
-        echo "Not enough information: \"dev\" argument is required."
+        echo "not enough information: \"dev\" argument is required."
         exit 1
     fi
     
