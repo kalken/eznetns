@@ -135,7 +135,6 @@ remove () {
 }
 
 enter () {
-    #ip netns exec "$_ns" "$SHELL"
     # patch to disable nscd in netfs to prevent dns leaks
     ip netns exec "$_ns"  "$SHELL" --init-file <(echo "test -e /run/nscd/socket && mount --bind /var/empty /run/nscd")
 }
