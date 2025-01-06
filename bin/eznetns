@@ -150,7 +150,7 @@ list () {
 }
 
 help () {
-    echo "Usage: netns [netns] [command]"
+    echo "Usage: eznetns [netns] [command]"
     echo "command: " $_commands
     echo "### netns uses files in /etc/netns/[netns] to setup network space ###"
     echo
