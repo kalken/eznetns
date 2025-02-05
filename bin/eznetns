@@ -159,8 +159,6 @@ if test -d "/root/.config/eznetns/$_ns"; then
 else _nspath="/etc/netns/$_ns"
 fi
 
-echo nspath is $_nspath
-
 shift
 
 if test -z "$_ns"; then
