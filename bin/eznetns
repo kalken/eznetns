@@ -12,33 +12,6 @@ netns.add () {
     ip -n "$_ns" link set lo up
 }
 
-netns.setup () {
-    if test -d "/etc/netns/$_ns"; then
-        echo "/etc/netns/$_ns: exists"
-    else
-        mkdir -p "/etc/netns/$_ns"
-        echo "created: /etc/netns/$_ns"
-    fi
-
-    if test -f "$_nspath/resolv.conf"; then
-        if test -f "/etc/netns/$_ns/resolv.conf"; then
-            echo "resolve.conf: /etc/netns/$_ns/resolv.conf"
-        else
-            ln -s "$_nspath/resolv.conf" "/etc/netns/$_ns/resolv.conf"
-            echo "resolve.conf -> /etc/netns/$_ns/resolv.conf"
-        fi
-    fi
-
-    if test -f "$_nspath/nsswitch.conf"; then
-        if test -f "/etc/netns/$_ns/nsswitch.conf"; then
-            echo "nsswitch.conf: /etc/netns/$_ns/nsswitch.conf"
-        else
-            ln -s "$_nspath/nsswitch.conf" "/etc/netns/$_ns/nsswitch.conf"
-            echo "nsswitch.conf -> /etc/netns/$_ns/nsswitch.conf" 
-        fi
-    fi
-}
-
 netns.nftables () {
     if test -f "$_nspath/nftables.conf"; then
         echo "nftables: $_nspath/nftables.conf"
@@ -122,7 +95,6 @@ setup () {
     netns.add
     
     if test -d "$_nspath"; then
-        netns.setup
         netns.nftables
         netns.wireguard
     else
@@ -134,15 +106,22 @@ remove () {
     netns.remove
 }
 
-enter () {
-    # patch to disable nscd in netfs to prevent dns leaks
-    ip netns exec "$_ns"  "$SHELL" --init-file <(echo "test -e /run/nscd/socket && mount --bind /var/empty /run/nscd")
+mount () {
+    test -f /etc/netns/"$_ns"/resolv.conf && echo -n "mount --bind /etc/netns/"$_ns"/resolv.conf /etc/resolv.conf;"
+    test -f /etc/netns/"$_ns"/nsswitch.conf && echo -n "mount --bind /etc/netns/"$_ns"/nsswitch.conf /etc/nsswitch.conf;"
+    test -d /run/nscd && echo -n "mount --bind /var/empty /run/nscd;"
 }
 
 exec () {
-    ip netns exec "$_ns" "$@"
+    # patch to disable nscd in netfs to prevent dns leaks
+    #ip netns exec "$_ns"  "$SHELL" --init-file <(echo "test -e /run/nscd/socket && mount --bind /var/empty /run/nscd")
+    _args="$@"
+    nsenter --net=/var/run/netns/"$_ns" unshare --mount sh -c "$(mount) exec $_args"
 }
 
+enter () {
+    exec $SHELL
+}
 
 list () {
     ip netns list
@@ -166,8 +145,8 @@ help () {
 
 
 # main
-#_commands=$(compgen -A function)
-_commands=$(declare -F | awk '{print $3}')
+_commands=$(compgen -A function)
+#_commands=$(declare -F | awk '{print $3}')
 
 case "$1" in 
  -h) help ;; 
