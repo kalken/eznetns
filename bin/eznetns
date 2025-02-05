@@ -154,10 +154,12 @@ list) list ;;
 esac
 
 _ns="$1"
-if test -d "~/.config/eznetns/$_ns"; then
-    _nspath="~/.config/eznetns/$_ns"
+if test -d "/root/.config/eznetns/$_ns"; then
+    _nspath="/root/.config/eznetns/$_ns"
 else _nspath="/etc/netns/$_ns"
 fi
+
+echo nspath is $_nspath
 
 shift
 
