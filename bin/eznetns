@@ -106,17 +106,15 @@ remove () {
     netns.remove
 }
 
-mount () {
-    test -f /etc/netns/"$_ns"/resolv.conf && echo -n "mount --bind /etc/netns/"$_ns"/resolv.conf /etc/resolv.conf;"
-    test -f /etc/netns/"$_ns"/nsswitch.conf && echo -n "mount --bind /etc/netns/"$_ns"/nsswitch.conf /etc/nsswitch.conf;"
-    test -d /run/nscd && echo -n "mount --bind /var/empty /run/nscd;"
+mounts () {
+    test -f "$_nspath/resolv.conf" && echo -n "mount --bind $_nspath/resolv.conf /etc/resolv.conf;"
+    test -f "$_nspath/nsswitch.conf" && echo -n "mount --bind $_nspath/nsswitch.conf /etc/nsswitch.conf;"
+    test -d "/run/nscd" && echo -n "mount --bind /var/empty /run/nscd;"
 }
 
 exec () {
-    # patch to disable nscd in netfs to prevent dns leaks
-    #ip netns exec "$_ns"  "$SHELL" --init-file <(echo "test -e /run/nscd/socket && mount --bind /var/empty /run/nscd")
     _args="$@"
-    nsenter --net=/var/run/netns/"$_ns" unshare --mount sh -c "$(mount) exec $_args"
+    nsenter --net=/var/run/netns/"$_ns" unshare --mount sh -c "$(mounts) exec $_args"
 }
 
 enter () {
@@ -156,8 +154,11 @@ list) list ;;
 esac
 
 _ns="$1"
-#_nspath="/etc/netns/$_ns"
-_nspath="/root/.config/eznetns/$_ns"
+if test -d "~/.config/eznetns/$_ns"; then
+    _nspath="~/.config/eznetns/$_ns"
+else _nspath="/etc/netns/$_ns"
+fi
+
 shift
 
 if test -z "$_ns"; then
