@@ -52,7 +52,7 @@ wg.up () {
 
     ip link add "$_dev" type wireguard
     ip link set "$_dev" netns "$_ns"
-    exec "$_ns" wg setconf "$_dev" <(wg-quick strip "$_conf")
+    ip netns exec "$_ns" wg setconf "$_dev" <(wg-quick strip "$_conf")
     
     _addr=$(awk -F ' *= *' 'tolower($0) ~ /^address/ {print $2}' "$_conf")
 
