@@ -112,13 +112,13 @@ mounts () {
     test -d "/run/nscd" && echo -n "mount --bind /var/empty /run/nscd;"
 }
 
-exec () {
+execute () {
     _args="$@"
     nsenter --net=/var/run/netns/"$_ns" unshare --mount sh -c "$(mounts) exec $_args"
 }
 
 enter () {
-    exec $SHELL
+    execute $SHELL
 }
 
 list () {
