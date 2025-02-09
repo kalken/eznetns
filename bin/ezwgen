@@ -78,7 +78,7 @@ if __name__ == '__main__':
     my_parser.add_argument('--dev', dest='interface', type=str, default='', help='selected interface')
     my_parser.add_argument('--netns', dest='netns', type=str, default='', help='selected netns (optional)')
     my_parser.add_argument('--source', dest='source', type=str, default='/root/.config/ezwgen', help='choose source folder')
-    my_parser.add_argument('--target', dest='target', type=str, default='/etc/netns', help='choose target folder')
+    my_parser.add_argument('--target', dest='target', type=str, default='/etc/eznetns', help='choose target folder')
     
     my_parser.add_argument('--pattern', dest='pattern', type=str, default='.', help='file pattern')
     my_parser.add_argument('--print', dest='print', action='store_true', default=False,

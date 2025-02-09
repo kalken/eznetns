@@ -129,15 +129,7 @@ list () {
 help () {
     echo "Usage: eznetns [netns] [command]"
     echo "command: " $_commands
-    echo "### netns uses files in /etc/netns/[netns] to setup network space ###"
-    echo
-    echo "examples:"
-    echo "#setup network space vpn"
-    echo "netns vpn setup"
-    echo "# reload wireguard wg0"
-    echo "netns vpn wg.reload wg0"
-    echo "# remove network space vpn"
-    echo "netns vpn remove"
+    echo "### netns uses files in /etc/eznetns/[netns] to setup network space ###"
     exit 0
 }
 
