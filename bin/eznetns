@@ -1,24 +1,19 @@
 #!/usr/bin/env bash
-
 #set -e
-
 if test "$EUID" -ne 0; then 
     echo "You need to have root privileges to run this script"
     exit
 fi
-
 netns.add () {
     ip netns add "$_ns"
     ip -n "$_ns" link set lo up
 }
-
 netns.nftables () {
     if test -f "$_nspath/nftables.conf"; then
         echo "nftables: $_nspath/nftables.conf"
         ip netns exec "$_ns" nft -f "$_nspath/nftables.conf"
     fi
 }
-
 netns.wireguard () {
     if test -d "$_nspath/wireguard"; then
         for _file in "$_nspath/wireguard/"*.conf; do
@@ -29,39 +24,32 @@ netns.wireguard () {
         done
     fi
 }
-
 netns.remove () {
     #ip netns pids $_ns | xargs kill
     ip netns del "$_ns"
 }
-
 wg.up () {
     _dev=$1
-
     if test -z "$_dev"; then
         echo "not enough information: \"dev\" argument is required."
         exit 1
     fi
     
     _conf="$_nspath/wireguard/$_dev.conf"
-
     if test ! -f "$_conf"; then
         echo "file not found: $_conf"
         exit 1
     fi
-
     ip link add "$_dev" type wireguard
     ip link set "$_dev" netns "$_ns"
     ip netns exec "$_ns" wg setconf "$_dev" <(wg-quick strip "$_conf")
     
     _addr=$(awk -F ' *= *' 'tolower($0) ~ /^address/ {print $2}' "$_conf")
-
     IFS=", "; for i in $_addr; do
         ip -n "$_ns" a add "$i" dev "$_dev"
     done
     
     _nameservers=$(awk -F ' *= *' 'tolower($0) ~ /^dns/ {print $2}' "$_conf")
-
     if test ! -z "$_nameservers"; then
         echo "updating: $_nspath/resolv.conf"
         true > "$_nspath/resolv.conf"
@@ -69,12 +57,10 @@ wg.up () {
             echo "nameserver $i" >> "$_nspath/resolv.conf"
         done
     fi
-
     ip -n "$_ns" link set "$_dev" up
     ip -n "$_ns" route add default dev "$_dev"
     ip -6 -n "$_ns" route add default dev "$_dev"
 }
-
 wg.down () {
     _dev="$1"
     
@@ -85,12 +71,10 @@ wg.down () {
     
     ip -n "$_ns" link del "$_dev"
 }
-
 wg.reload () {
     wg.down "$1"
     wg.up "$1"
 }
-
 setup () {
     netns.add
     
@@ -101,71 +85,78 @@ setup () {
         echo "warning: $_nspath does not exist"
     fi
 }
-
 remove () {
     netns.remove
 }
-
 reload () {
-    netns.nftables
-    wg.reload
+    echo "Reloading netns: $_ns"
+    
+    # Reload nftables firewall
+    if test -f "$_nspath/nftables.conf"; then
+        echo "Reloading nftables..."
+        netns.nftables
+    fi
+    
+    # Reload all wireguard interfaces
+    if test -d "$_nspath/wireguard"; then
+        for _file in "$_nspath/wireguard/"*.conf; do
+            _filename=$(basename -- "$_file")
+            _dev="${_filename%.conf}"
+            
+            # Check if the interface exists in the netns
+            if ip -n "$_ns" link show "$_dev" &>/dev/null; then
+                echo "Reloading wireguard interface: $_dev"
+                wg.reload "$_dev"
+            else
+                echo "Adding new wireguard interface: $_dev"
+                wg.up "$_dev"
+            fi
+        done
+    fi
+    
+    echo "Reload complete"
 }
-
 mounts () {
     test -f "$_nspath/resolv.conf" && echo -n "mount --bind $_nspath/resolv.conf /etc/resolv.conf;"
     test -f "$_nspath/nsswitch.conf" && echo -n "mount --bind $_nspath/nsswitch.conf /etc/nsswitch.conf;"
     test -d "/run/nscd" && echo -n "mount --bind /var/empty /run/nscd;"
 }
-
 execute () {
     _args="$@"
     nsenter --net=/var/run/netns/"$_ns" unshare --mount sh -c "$(mounts) exec $_args"
 }
-
 enter () {
     execute $SHELL
 }
-
 list () {
     ip netns list
     exit 0
 }
-
 help () {
     echo "Usage: eznetns [netns] [command]"
     echo "command: " $_commands
     echo "### eznetns uses files in /etc/eznetns/[netns] to setup network space. ###"
     exit 0
 }
-
-
 # main
 _commands=$(compgen -A function)
-
 case "$1" in 
  -h) help ;; 
  --help) help ;;
 help) help ;;
 list) list ;;
 esac
-
 _ns="$1"
-
 shift
-
 if test -z "$_ns"; then
     help
 fi
-
 if test -d "/etc/eznetns/$_ns"; then
   _nspath="/etc/eznetns/$_ns"
 else
   _nspath="/etc/netns/$_ns"
 fi
-
 _command="$1"
 shift
-
 [[ $_commands =~ (^|[[:space:]])$_command($|[[:space:]]) ]] || { echo "command not found: $_command"; exit 1; }
-
 $_command "$@"
