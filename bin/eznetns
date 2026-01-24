@@ -89,11 +89,8 @@ remove () {
     netns.remove
 }
 reload () {
-    echo "Reloading netns: $_ns"
-    
     # Reload nftables firewall
     if test -f "$_nspath/nftables.conf"; then
-        echo "Reloading nftables..."
         netns.nftables
     fi
     
@@ -105,16 +102,12 @@ reload () {
             
             # Check if the interface exists in the netns
             if ip -n "$_ns" link show "$_dev" &>/dev/null; then
-                echo "Reloading wireguard interface: $_dev"
                 wg.reload "$_dev"
             else
-                echo "Adding new wireguard interface: $_dev"
                 wg.up "$_dev"
             fi
         done
     fi
-    
-    echo "Reload complete"
 }
 mounts () {
     test -f "$_nspath/resolv.conf" && echo -n "mount --bind $_nspath/resolv.conf /etc/resolv.conf;"
