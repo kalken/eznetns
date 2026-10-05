@@ -45,28 +45,29 @@ def main(args):
     try:
         if not len(args.interface):
             print('please select device to configure with --dev')
-            sys.exit()
+            sys.exit(1)
 
-        t_path = Path(f'{args.source}/{args.netns}/{args.interface}')
-        if t_path.is_dir():
-            template_dir = t_path
-        else:
-            print(f'can not find directory {t_path}')
-            template_dir = None
+        template_dir = Path(f'{args.source}/{args.netns}/{args.interface}')
+        if not template_dir.is_dir():
+            print(f'can not find directory {template_dir}')
+            sys.exit(1)
 
-        c_path = Path(f'{args.source}/{args.netns}/{args.interface}.conf')
-        if c_path.is_file():
-            conf = c_path
-        else:
-            print(f'can not find file: {c_path}')
-            conf = None
+        templates = glob.glob(f'{template_dir}/*{args.pattern}*')
+        if not templates:
+            print(f'no templates matching "*{args.pattern}*" in {template_dir}')
+            sys.exit(1)
 
-        if conf and template_dir:
-            template_file = Path(template_dir, random.choice(glob.glob(f'{template_dir}/*{args.pattern}*')))
-            template = configparser.ConfigParser()
-            template.read(template_file)
+        template = configparser.ConfigParser()
+        template.read(random.choice(templates))
+
+        # The settings file is optional: without it the template is used as is
+        conf = Path(f'{args.source}/{args.netns}/{args.interface}.conf')
+        if conf.is_file():
             template.read(conf)
-            template.write(handler(args))
+        else:
+            print(f'no settings file {conf}, using the template unchanged')
+
+        template.write(handler(args))
 
     except Exception as e:
         print(e)
