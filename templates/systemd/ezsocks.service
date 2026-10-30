@@ -1,0 +1,10 @@
+[Unit]
+Description=ezsocks localhost
+
+[Service]
+#User=myuser
+# Remove "--happy-eyeballs-impl builtin" if the async-stagger module is installed
+ExecStart=/usr/bin/python3 /opt/ezsocks/prettysocks.py --listen-host 127.0.0.1 -p 1080 --log-level WARNING --happy-eyeballs-impl builtin
+
+[Install]
+WantedBy=multi-user.target

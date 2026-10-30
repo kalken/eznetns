@@ -1,6 +1,6 @@
 [Unit]
-Requires=netns@vpn.service
-After=netns@vpn.service
+Requires=ezsocks@vpn.service
+After=ezsocks@vpn.service
 Requires=vpn-proxy.socket
 After=vpn-proxy.socket
 

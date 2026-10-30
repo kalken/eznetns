@@ -3,8 +3,8 @@ Description=netns setup
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/netns %i setup
-ExecStop=/usr/local/sbin/netns %i remove
+ExecStart=/usr/local/sbin/eznetns %i setup
+ExecStop=/usr/local/sbin/eznetns %i remove
 RemainAfterExit=yes
 
 [Install]

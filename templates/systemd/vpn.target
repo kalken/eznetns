@@ -1,5 +1,5 @@
 [Unit]
-Requires=microsocks@vpn.service
+Requires=ezsocks@vpn.service
 
 [Install]
 WantedBy=multi-user.target

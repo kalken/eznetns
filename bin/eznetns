@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-#set -e
+set -e
+shopt -s nullglob
 if test "$EUID" -ne 0; then 
     echo "You need to have root privileges to run this script"
-    exit
+    exit 1
 fi
 netns.add () {
     ip netns add "$_ns"
@@ -25,11 +26,12 @@ netns.wireguard () {
     fi
 }
 netns.remove () {
-    #ip netns pids $_ns | xargs kill
+    ip netns pids "$_ns" | xargs -r kill
     ip netns del "$_ns"
 }
 wg.up () {
-    _dev=$1
+    local _dev="$1" _conf _addr _nameservers _mtu i
+    local IFS=", "
     if test -z "$_dev"; then
         echo "not enough information: \"dev\" argument is required."
         exit 1
@@ -44,25 +46,29 @@ wg.up () {
     ip link set "$_dev" netns "$_ns"
     ip netns exec "$_ns" wg setconf "$_dev" <(wg-quick strip "$_conf")
     
-    _addr=$(awk -F ' *= *' 'tolower($0) ~ /^address/ {print $2}' "$_conf")
-    IFS=", "; for i in $_addr; do
+    _addr=$(conf.value address "$_conf")
+    for i in $_addr; do
         ip -n "$_ns" a add "$i" dev "$_dev"
     done
     
-    _nameservers=$(awk -F ' *= *' 'tolower($0) ~ /^dns/ {print $2}' "$_conf")
+    _nameservers=$(conf.value dns "$_conf")
     if test ! -z "$_nameservers"; then
         echo "updating: $_nspath/resolv.conf"
         true > "$_nspath/resolv.conf"
-        IFS=", "; for i in $_nameservers; do
+        for i in $_nameservers; do
             echo "nameserver $i" >> "$_nspath/resolv.conf"
         done
     fi
+    _mtu=$(conf.value mtu "$_conf")
+    if test -n "$_mtu"; then
+        ip -n "$_ns" link set "$_dev" mtu "$_mtu"
+    fi
     ip -n "$_ns" link set "$_dev" up
     ip -n "$_ns" route add default dev "$_dev"
-    ip -6 -n "$_ns" route add default dev "$_dev"
+    ip -6 -n "$_ns" route add default dev "$_dev" || echo "warning: could not add ipv6 default route via $_dev"
 }
 wg.down () {
-    _dev="$1"
+    local _dev="$1"
     
     if test -z "$_dev"; then
         echo "not enough information: \"dev\" argument is required."
@@ -71,11 +77,20 @@ wg.down () {
     
     ip -n "$_ns" link del "$_dev"
 }
+conf.value () {
+    # print the value of a wg-quick key (case insensitive), without trailing comments
+    awk -F ' *= *' -v key="$1" 'tolower($1) ~ "^[ \t]*" key "$" {sub(/[ \t]*#.*/, "", $2); print $2}' "$2"
+}
 wg.reload () {
     wg.down "$1"
     wg.up "$1"
 }
 setup () {
+    if test -e "/run/netns/$_ns"; then
+        echo "$_ns already exists, reloading"
+        reload
+        return
+    fi
     netns.add
     
     if test -d "$_nspath"; then
@@ -115,11 +130,10 @@ mounts () {
     test -d "/run/nscd" && echo -n "mount --bind /var/empty /run/nscd;"
 }
 execute () {
-    _args="$@"
-    nsenter --net=/var/run/netns/"$_ns" unshare --mount sh -c "$(mounts) exec $_args"
+    nsenter --net=/var/run/netns/"$_ns" unshare --mount sh -c "$(mounts) exec \"\$@\"" sh "$@"
 }
 enter () {
-    execute $SHELL
+    execute "$SHELL"
 }
 list () {
     ip netns list
@@ -133,23 +147,26 @@ help () {
 }
 # main
 _commands=$(compgen -A function)
-case "$1" in 
+case "${1-}" in 
  -h) help ;; 
  --help) help ;;
 help) help ;;
 list) list ;;
 esac
-_ns="$1"
-shift
+_ns="${1-}"
 if test -z "$_ns"; then
     help
 fi
+shift
 if test -d "/etc/eznetns/$_ns"; then
   _nspath="/etc/eznetns/$_ns"
 else
   _nspath="/etc/netns/$_ns"
 fi
-_command="$1"
+_command="${1-}"
+if test -z "$_command"; then
+    help
+fi
 shift
 [[ $_commands =~ (^|[[:space:]])$_command($|[[:space:]]) ]] || { echo "command not found: $_command"; exit 1; }
 $_command "$@"

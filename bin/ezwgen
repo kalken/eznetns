@@ -4,74 +4,103 @@ from pathlib import Path
 import random
 import os
 import sys
-import configparser
 import glob
 
 
-if os.geteuid() != 0:
-    exit("You need to have root privileges to run this script")
+def info(message):
+    # Status messages go to stderr, so --print output can be redirected to a file
+    print(message, file=sys.stderr)
 
 
-def version():
-    return '1.0'
+def parse(path):
+    # WireGuard configs can repeat sections ([Peer]) and keys (AllowedIPs),
+    # which configparser does not allow, so they are kept as ordered lists
+    sections = []
+    for line in Path(path).read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if line.startswith('[') and line.endswith(']'):
+            sections.append((line[1:-1].strip(), []))
+        elif '=' in line and sections:
+            key, value = line.split('=', 1)
+            sections[-1][1].append((key.strip(), value.strip()))
+        else:
+            raise ValueError(f'{path}: can not parse line: {line}')
+    return sections
 
 
-def resolve(path):
-    basedir = Path(__file__).resolve().parent
-    return Path(basedir, path)
+def merge(template, settings):
+    # A setting overrides the key in every template section with the same name,
+    # e.g. a [Peer] setting applies to all peers. Sections missing in the template are added.
+    for name, entries in settings:
+        targets = [s for s in template if s[0].lower() == name.lower()]
+        if not targets:
+            template.append((name, list(entries)))
+            continue
+        for _, target in targets:
+            keys = {k.lower() for k, _ in entries}
+            target[:] = [(k, v) for k, v in target if k.lower() not in keys] + entries
+    return template
 
 
-def handler(args):
+def render(sections):
+    return '\n'.join(
+        f'[{name}]\n' + ''.join(f'{k} = {v}\n' for k, v in entries)
+        for name, entries in sections
+    )
+
+
+def target_path(args):
     if args.netns:
-        target = Path(f'{args.target}/{args.netns}/wireguard/{args.interface}.conf')
-    else:
-        target = Path(f'/etc/wireguard/{args.interface}.conf')
-    if args.print:
-        handle = sys.stdout
-        handle.write(f'Printing what would be: {target}\n\n')
-    else:
-        target_dir = target.parent
-        if not target_dir.is_dir():
-            print(f'creating: {target_dir}')
-            target.parent.mkdir(parents=True, exist_ok=True)
+        return Path(f'{args.target}/{args.netns}/wireguard/{args.interface}.conf')
+    return Path(f'/etc/wireguard/{args.interface}.conf')
 
-        print(f'generating: {target}')
-        handle = open(target, 'w')
-        target.chmod(0o750)
-    return handle
+
+def write(target, content):
+    if not target.parent.is_dir():
+        info(f'creating: {target.parent}')
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+    info(f'generating: {target}')
+    # The config contains the private key, so only root may read it
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    os.fchmod(fd, 0o600)
+    with os.fdopen(fd, 'w') as handle:
+        handle.write(content)
 
 
 def main(args):
     try:
         if not len(args.interface):
-            print('please select device to configure with --dev')
-            sys.exit(1)
+            sys.exit('please select device to configure with --dev')
 
         template_dir = Path(f'{args.source}/{args.netns}/{args.interface}')
         if not template_dir.is_dir():
-            print(f'can not find directory {template_dir}')
-            sys.exit(1)
+            sys.exit(f'can not find directory {template_dir}')
 
         templates = glob.glob(f'{template_dir}/*{args.pattern}*')
         if not templates:
-            print(f'no templates matching "*{args.pattern}*" in {template_dir}')
-            sys.exit(1)
+            sys.exit(f'no templates matching "*{args.pattern}*" in {template_dir}')
 
-        template = configparser.ConfigParser()
-        template.read(random.choice(templates))
+        template = parse(random.choice(templates))
 
         # The settings file is optional: without it the template is used as is
         conf = Path(f'{args.source}/{args.netns}/{args.interface}.conf')
         if conf.is_file():
-            template.read(conf)
+            merge(template, parse(conf))
         else:
-            print(f'no settings file {conf}, using the template unchanged')
+            info(f'no settings file {conf}, using the template unchanged')
 
-        template.write(handler(args))
+        target = target_path(args)
+        if args.print:
+            info(f'Printing what would be: {target}\n')
+            sys.stdout.write(render(template))
+        else:
+            write(target, render(template))
 
     except Exception as e:
-        print(e)
-        sys.exit(1)
+        sys.exit(e)
 
 
 if __name__ == '__main__':
@@ -84,13 +113,11 @@ if __name__ == '__main__':
     my_parser.add_argument('--pattern', dest='pattern', type=str, default='.', help='file pattern')
     my_parser.add_argument('--print', dest='print', action='store_true', default=False,
                            help="print config but don't generate file")
-    my_parser.add_argument('--version', dest='version', action='store_true', default=False, help="show version")
     
 
     args = my_parser.parse_args()
 
-    if args.version:
-        print(version())
-        sys.exit()
+    if os.geteuid() != 0:
+        sys.exit("You need to have root privileges to run this script")
 
     main(args)

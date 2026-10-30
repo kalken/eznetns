@@ -38,7 +38,7 @@ eznetns is used to create and setup a network namespace. It is heavily based on 
 
 ### ezwgen
 
-ezwgen is used to generate complete wireguard configs. It can also be used to change wireguard config. ezwgen also supports making system wide wg-quick config if no netns is specified. it expects settings in /root/.config/ezwgen. There is also support for netns with --netns which points to folder /root/.config/ezwgen/[netns]. this folder should contain a <name> folder (with templates) and optionally <name>.conf (settings file). Any setting in the settings file will always override any setting in a template file; without a settings file the chosen template is used unchanged. A typical thing to specify in the settings file is **privatekey**. One file at random will be chosen from template folder and merged with the settings file any time this program is run. If no config can be generated (missing template folder, no matching template) ezwgen exits with an error. **ezwgen requires python 3**.
+ezwgen is used to generate complete wireguard configs. It can also be used to change wireguard config. ezwgen also supports making system wide wg-quick config if no netns is specified. it expects settings in /root/.config/ezwgen. There is also support for netns with --netns which points to folder /root/.config/ezwgen/[netns]. this folder should contain a <name> folder (with templates) and optionally <name>.conf (settings file). Any setting in the settings file will always override any setting in a template file (a setting under [Peer] applies to every peer in the template); without a settings file the chosen template is used unchanged. A typical thing to specify in the settings file is **privatekey**. One file at random will be chosen from template folder and merged with the settings file any time this program is run. If no config can be generated (missing template folder, no matching template) ezwgen exits with an error. **ezwgen requires python 3**.
 
 ## Prevent dns leaks
 You should use separate resolv.conf and nsswitch.conf in your netns to control how the netns resolves its hosts. example files are included in "templates" folder.
@@ -60,7 +60,8 @@ This example assumes you want to create a netns named **vpn** and the source fil
     ezwgen --help
     
     # add custom resolv.conf and nsswitch.conf
-    cp -r /opt/eznetns/templates/eznetns /etc/eznetns/vpn
+    mkdir -p /etc/eznetns
+    cp -r /opt/eznetns/templates/netns /etc/eznetns/vpn
 
     # put your wireguard config in /etc/eznetns/vpn/wireguard/[interface].conf (with ezwgen or manually)
 
@@ -74,7 +75,7 @@ This example assumes you want to create a netns named **vpn** and the source fil
     
     # exec through netns
     eznetns vpn execute mycommand
-    # example: netns vpn exec curl ifconfig.co
+    # example: eznetns vpn execute curl ifconfig.co
     
     # enter netns
     eznetns vpn enter
@@ -86,7 +87,9 @@ This example assumes you want to create a netns named **vpn** and the source fil
     
     
 ### systemd files
-    # Note: microsocks needs to be installed on your system
+    # Note: the templates use ezsocks (https://github.com/kalken/ezsocks) as SOCKS5 proxy.
+    # It requires python 3.11+. async-stagger and uvloop are optional.
+    git clone https://github.com/kalken/ezsocks /opt/ezsocks
 
     cp -r /opt/eznetns/templates/systemd /opt/systemd # or any other place you prefer
     # Edit files to match your needs
@@ -97,18 +100,18 @@ This example assumes you want to create a netns named **vpn** and the source fil
 
     # start manually
     # Note: vpn-proxy.socket will trigger vpn-proxy.service when socket is activated.
-    systemctl start microsocks vpn-proxy.socket vpn.target
+    systemctl start ezsocks vpn-proxy.socket vpn.target
     
     # enable services at boot
-    systemctl enable microsocks vpn-proxy.socket vpn.target
+    systemctl enable ezsocks vpn-proxy.socket vpn.target
     
 ## Notes: 
 Services are available at localhost: 
        
-* 1080 localhost -> microsocks host ip
-* 1081 localhost -> microsocks netns ip through local socket
+* 1080 localhost -> ezsocks host ip
+* 1081 localhost -> ezsocks netns ip through local socket
  
-**If you add** more services to **/opt/systemd/eznetns**, also add them to **vpn.target** so they are started at boot.
+**If you add** more services to **/opt/systemd/netns**, also add them to **vpn.target** so they are started at boot.
     
 # done!
 
@@ -143,7 +146,7 @@ Note: You can also put a **macvlan**-interface etc inside the netns, to open up 
 
 ### Changing wireguard on the fly
 
-something like this should would generate a new config and reload the interface wg0 inside the netns:
+something like this would generate a new config and reload the interface wg0 inside the netns:
     
     ezwgen --netns vpn --dev wg0 && eznetns vpn wg.reload wg0
 
