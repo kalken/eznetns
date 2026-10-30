@@ -26,12 +26,14 @@ netns.wireguard () {
     fi
 }
 netns.remove () {
-    ip netns pids "$_ns" | xargs -r kill
+    # a process may exit between listing and killing
+    ip netns pids "$_ns" | xargs -r kill 2>/dev/null || true
     ip netns del "$_ns"
 }
 wg.up () {
     local _dev="$1" _conf _addr _nameservers _mtu i
-    local IFS=", "
+    # values can be split by comma, space or newline (repeated Address/DNS lines)
+    local IFS=$', \n'
     if test -z "$_dev"; then
         echo "not enough information: \"dev\" argument is required."
         exit 1
