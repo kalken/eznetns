@@ -1,5 +1,8 @@
 [Unit]
 Description=netns setup
+# wireguard endpoints may need dns and a route at boot
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=oneshot
