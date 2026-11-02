@@ -35,7 +35,7 @@ class Source:
 
     def templates(self, directory, pattern):
         # Only files directly in the directory, like a glob would
-        prefix = f'{directory}/'
+        prefix = f'{directory}/' if directory else ''
         return [
             n for n in self.names()
             if n.startswith(prefix) and '/' not in n[len(prefix):]
@@ -114,21 +114,27 @@ def main(args):
         source = Source(args.source)
         prefix = f'{args.netns}/' if args.netns else ''
         template_dir = f'{prefix}{args.interface}'
-        if not source.has_dir(template_dir):
-            sys.exit(f'can not find directory {template_dir} in {args.source}')
-
-        templates = source.templates(template_dir, args.pattern)
-        if not templates:
-            sys.exit(f'no templates matching "*{args.pattern}*" in {template_dir} in {args.source}')
+        conf = f'{template_dir}.conf'
+        if source.has_dir(template_dir):
+            templates = source.templates(template_dir, args.pattern)
+            if not templates:
+                sys.exit(f'no templates matching "*{args.pattern}*" in {template_dir} in {args.source}')
+        else:
+            # Without the folder, the .conf files at the top are the templates, each a
+            # complete config (a zip from a VPN provider, say), and there is no settings file
+            templates = [n for n in source.templates('', args.pattern) if n.endswith('.conf')]
+            conf = None
+            if not templates:
+                sys.exit(f'can not find directory {template_dir}, or any .conf files matching '
+                         f'"*{args.pattern}*", in {args.source}')
 
         chosen = random.choice(templates)
         template = parse(source.read(chosen), chosen)
 
         # The settings file is optional: without it the template is used as is
-        conf = f'{template_dir}.conf'
-        if source.has_file(conf):
+        if conf and source.has_file(conf):
             merge(template, parse(source.read(conf), conf))
-        else:
+        elif conf:
             info(f'no settings file {conf}, using the template unchanged')
 
         target = target_path(args)
