@@ -4,7 +4,8 @@ from pathlib import Path
 import random
 import os
 import sys
-import glob
+import fnmatch
+import zipfile
 
 
 def info(message):
@@ -12,11 +13,46 @@ def info(message):
     print(message, file=sys.stderr)
 
 
-def parse(path):
+class Source:
+    # The settings and templates, either a folder or a zip file with the same layout:
+    # <netns>/<interface>.conf and <netns>/<interface>/<template>. A zip is read in
+    # memory and never extracted, so the keys in it are not copied anywhere.
+    def __init__(self, path):
+        self.path = Path(path)
+        self.archive = zipfile.ZipFile(self.path) if self.path.is_file() else None
+
+    def names(self):
+        if self.archive:
+            return [n for n in self.archive.namelist() if not n.endswith('/')]
+        return [str(p.relative_to(self.path)) for p in self.path.rglob('*') if p.is_file()]
+
+    def has_dir(self, directory):
+        prefix = f'{directory}/'
+        return any(n.startswith(prefix) for n in self.names())
+
+    def has_file(self, name):
+        return name in self.names()
+
+    def templates(self, directory, pattern):
+        # Only files directly in the directory, like a glob would
+        prefix = f'{directory}/'
+        return [
+            n for n in self.names()
+            if n.startswith(prefix) and '/' not in n[len(prefix):]
+            and fnmatch.fnmatch(n[len(prefix):], f'*{pattern}*')
+        ]
+
+    def read(self, name):
+        if self.archive:
+            return self.archive.read(name).decode()
+        return (self.path / name).read_text()
+
+
+def parse(text, origin):
     # WireGuard configs can repeat sections ([Peer]) and keys (AllowedIPs),
     # which configparser does not allow, so they are kept as ordered lists
     sections = []
-    for line in Path(path).read_text().splitlines():
+    for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith('#'):
             continue
@@ -26,7 +62,7 @@ def parse(path):
             key, value = line.split('=', 1)
             sections[-1][1].append((key.strip(), value.strip()))
         else:
-            raise ValueError(f'{path}: can not parse line: {line}')
+            raise ValueError(f'{origin}: can not parse line: {line}')
     return sections
 
 
@@ -75,20 +111,23 @@ def main(args):
         if not len(args.interface):
             sys.exit('please select device to configure with --dev')
 
-        template_dir = Path(f'{args.source}/{args.netns}/{args.interface}')
-        if not template_dir.is_dir():
-            sys.exit(f'can not find directory {template_dir}')
+        source = Source(args.source)
+        prefix = f'{args.netns}/' if args.netns else ''
+        template_dir = f'{prefix}{args.interface}'
+        if not source.has_dir(template_dir):
+            sys.exit(f'can not find directory {template_dir} in {args.source}')
 
-        templates = glob.glob(f'{template_dir}/*{args.pattern}*')
+        templates = source.templates(template_dir, args.pattern)
         if not templates:
-            sys.exit(f'no templates matching "*{args.pattern}*" in {template_dir}')
+            sys.exit(f'no templates matching "*{args.pattern}*" in {template_dir} in {args.source}')
 
-        template = parse(random.choice(templates))
+        chosen = random.choice(templates)
+        template = parse(source.read(chosen), chosen)
 
         # The settings file is optional: without it the template is used as is
-        conf = Path(f'{args.source}/{args.netns}/{args.interface}.conf')
-        if conf.is_file():
-            merge(template, parse(conf))
+        conf = f'{template_dir}.conf'
+        if source.has_file(conf):
+            merge(template, parse(source.read(conf), conf))
         else:
             info(f'no settings file {conf}, using the template unchanged')
 
@@ -107,7 +146,7 @@ if __name__ == '__main__':
     my_parser = argparse.ArgumentParser(description='generate config for wireguard')
     my_parser.add_argument('--dev', dest='interface', type=str, default='', help='selected interface')
     my_parser.add_argument('--netns', dest='netns', type=str, default='', help='selected netns (optional)')
-    my_parser.add_argument('--source', dest='source', type=str, default='/root/.config/ezwgen', help='choose source folder')
+    my_parser.add_argument('--source', dest='source', type=str, default='/root/.config/ezwgen', help='choose source folder or zip file')
     my_parser.add_argument('--target', dest='target', type=str, default='/etc/eznetns', help='choose target folder')
     
     my_parser.add_argument('--pattern', dest='pattern', type=str, default='.', help='file pattern')
