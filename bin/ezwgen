@@ -131,16 +131,14 @@ def main(args):
         chosen = random.choice(templates)
         template = parse(source.read(chosen), chosen)
 
-        # The settings file is optional: without it the template is used as is
-        if conf and source.has_file(conf):
-            merge(template, parse(source.read(conf), conf))
-        elif conf and not args.settings:
-            info(f'no settings file {conf}, using the template unchanged')
-
-        # A settings file of its own, kept apart from the source, is merged last and so wins
-        # over both the template and the settings file in the source
+        # The settings file is optional: without it the template is used as is.
+        # --settings names another one, kept outside the source, and is used instead
         if args.settings:
             merge(template, parse(Path(args.settings).read_text(), args.settings))
+        elif conf and source.has_file(conf):
+            merge(template, parse(source.read(conf), conf))
+        elif conf:
+            info(f'no settings file {conf}, using the template unchanged')
 
         target = target_path(args)
         if args.print:
@@ -158,7 +156,7 @@ if __name__ == '__main__':
     my_parser.add_argument('--dev', dest='interface', type=str, default='', help='selected interface')
     my_parser.add_argument('--netns', dest='netns', type=str, default='', help='selected netns (optional)')
     my_parser.add_argument('--source', dest='source', type=str, default='/root/.config/ezwgen', help='choose source folder or zip file')
-    my_parser.add_argument('--settings', dest='settings', type=str, default='', help='settings file (wg-quick syntax) kept outside the source, merged last so its settings win over the template and the source settings file')
+    my_parser.add_argument('--settings', dest='settings', type=str, default='', help='settings file to use instead of the one in the source (<netns>/<interface>.conf)')
     my_parser.add_argument('--target',dest='target', type=str, default='/etc/eznetns', help='choose target folder')
     
     my_parser.add_argument('--pattern', dest='pattern', type=str, default='.', help='file pattern')
